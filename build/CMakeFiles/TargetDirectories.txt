@@ -1,0 +1,3 @@
+/home/k06/Desktop/item_sorting_system/build/CMakeFiles/item_sorting_system.dir
+/home/k06/Desktop/item_sorting_system/build/CMakeFiles/edit_cache.dir
+/home/k06/Desktop/item_sorting_system/build/CMakeFiles/rebuild_cache.dir
