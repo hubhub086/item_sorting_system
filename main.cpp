@@ -10,12 +10,13 @@
 using namespace std;
 using namespace cv;
 
-void getContours(Mat imgDil, Mat img);
+void getContours(Mat imgDil, Mat* img);
+vector<Point> get_blobs_center(Mat img, int min_area, int max_area);
 Point get_center_position(Mat* img_origin, Rect roi);
 vector<Point> get_map_pos(Mat* img);
 
 Mat frame;
-Mat gray, hsv_frame, orange_thres, green_thres, RGB_mask;
+Mat gray, hsv_frame, orange_thres, green_thres, black_thres;
 Mat img_warp_hsv,img_wrap_BGR;
 vector<Mat> hsvSplit;
 
@@ -31,7 +32,9 @@ vector<Point2f> dst_points = {Point2f(0.0, 0.0),
 				              Point2f(400.0, 0.0),
 				              Point2f(400.0, 500.0)};
 vector<Point2f> map_pos_2f;
-
+vector<Point> black_blob_pos, orange_blob_pos;
+Point paw_zero_position;
+Rect targetRect = {0,0,155,160};  //mask roi for blackHome
 // [247, 92;
 //  508, 84;
 //  258, 415;
@@ -81,6 +84,7 @@ int main()
         ////颜色识别
         if (main_status == 10)
 		{
+			// 识别地图角点
 			inRange(hsv_frame, Scalar(35, 43, 36), Scalar(77, 255, 255), green_thres); //绿色
 			Mat element = getStructuringElement(MORPH_RECT, Size(5, 5));
 			morphologyEx(green_thres, green_thres, MORPH_OPEN, element);  //开操作
@@ -104,8 +108,23 @@ int main()
 			}
 			imshow("green", green_thres);
 		}
+		else if (main_status == 11)
+		{
+			// 标定爪子中心点
+			Mat rotation,img_warp;
+			rotation=getPerspectiveTransform(map_pos_2f,dst_points);
+			warpPerspective(hsv_frame, img_warp, rotation, Size(400, 500));
+			inRange(img_warp, Scalar(35, 43, 36), Scalar(77, 255, 255), green_thres); //绿色
+			Mat element = getStructuringElement(MORPH_RECT, Size(5, 5));
+			morphologyEx(green_thres, green_thres, MORPH_OPEN, element);  //开操作
+			morphologyEx(green_thres, green_thres, MORPH_CLOSE, element);  //闭操作
+			vector<Point> paw_pos = get_map_pos(&green_thres);
+			paw_zero_position = paw_pos[0];
+			paw_zero_position.x -= 52;
+		}
 		else if (main_status == 20)
 		{
+			//识别色快
 			if (map_pos_2f.size() == 4)
 			{
 				Mat rotation;
@@ -113,14 +132,17 @@ int main()
 				warpPerspective(hsv_frame, img_warp_hsv, rotation, Size(400, 500));
 				warpPerspective(frame, img_wrap_BGR, rotation, Size(400, 500));
 				imshow("imgwraphsv", img_warp_hsv);
-				imshow("imgwrapBGR", img_wrap_BGR);
 			}
 
-			inRange(img_warp_hsv, Scalar(11, 43, 46), Scalar(140, 255, 255), orange_thres); //黄色
-			inRange(img_warp_hsv, Scalar(0, 0, 0), Scalar(200, 200, 30), RGB_mask); //黑色
-			// inRange(frame, Scalar(90, 150, 0), Scalar(180, 255, 20), RGB_mask); //绿色
-			imshow("orange", orange_thres);
-			imshow("RGB_mask", RGB_mask);
+			inRange(img_warp_hsv, Scalar(0, 43, 56), Scalar(150, 255, 255), orange_thres); //黄色
+			inRange(img_warp_hsv, Scalar(0, 0, 0), Scalar(200, 200, 29), black_thres); //黑色
+			Mat subImage = black_thres(targetRect);
+    		subImage.setTo(0);
+			black_blob_pos = get_blobs_center(black_thres, 1000, 4000);
+			orange_blob_pos = get_blobs_center(orange_thres, 1000, 4000);
+			imshow("orange_thres", orange_thres);
+			imshow("black_thres", black_thres);
+			imshow("imgwrapBGR", img_wrap_BGR);
 		}
         // //形状识别
         // Mat imgBlur;
@@ -152,36 +174,47 @@ int main()
     return 0;
 }
 
+vector<Point> get_blobs_center(Mat img, int min_area, int max_area)
+{
+	vector<Point> center_points;
+	vector<vector<Point>> contours;
+	vector<Vec4i> hierarchy;
+	findContours(img, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+	for (int i = 0; i < contours.size(); i++)
+	{
+		int area = contourArea(contours[i]);
+		if (area > min_area && area < max_area)
+		{
+			Rect bound = boundingRect(contours[i]);
+			Point center = {0,0};
+			int count = 0;
+			for (int j=0; j<bound.width; j++)
+			{
+				for (int k=0; k< bound.height; k++)
+				{
+					if (img.at<uchar>(bound.y+k, bound.x+j) == 255)
+					{
+						center += {bound.x+j, bound.y+k};
+						count++;
+					}
+				}
+			}
+			center.x /= count;
+			center.y /= count;
+			center_points.push_back(center);
+			circle(frame, center, 3, Scalar(0, 255, 120), -1);
+			circle(img_wrap_BGR, center, 5, Scalar(0, 255, 120), -1);
+			rectangle(img_wrap_BGR, bound.tl(), bound.br(), Scalar(0, 255, 0), 5);
+		}
+	}
+	return center_points;
+}
+
 vector<Point> get_map_pos(Mat* img)
 {
 	vector<Point> rec_pos_sort;
-	vector<Point> rec_pos;
-	vector<vector<Point>> contours;
-	vector<Vec4i> hierarchy;
-	findContours(green_thres, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
-	for (int i = 0; i < contours.size(); i++)
-	{
-		Rect bound = boundingRect(contours[i]);
-		Point center = {0,0};
-		int count = 0;
-		for (int j=0; j<bound.width; j++)
-		{
-			for (int k=0; k< bound.height; k++)
-			{
-				if (green_thres.at<uchar>(bound.y+k, bound.x+j) == 255)
-				{
-					center += {bound.x+j, bound.y+k};
-					count++;
-				}
-			}
-		}
-		center.x /= count;
-		center.y /= count;
-		rec_pos.push_back(center);
-		circle(frame, center, 3, Scalar(0, 255, 120), -1);
-		// cout << "center=" << center << endl;
-		// int area = contourArea(contours[i]);
-	}
+	vector<Point> rec_pos = get_blobs_center(*img, 5, 4000);
+
 	if (rec_pos.size() == 4)
 	{
 		vector<int> temp;
@@ -248,7 +281,7 @@ Point get_center_position(Mat* img_origin, Rect roi)
 }
 
 
-void getContours(Mat imgDil,Mat img)
+void getContours(Mat imgDil,Mat* img)
 {
 	//创建轮廓
 	vector<vector<Point>> contours;
@@ -285,13 +318,13 @@ void getContours(Mat imgDil,Mat img)
 			//如果是矩形，将有4个，三角形则是3个
 			approxPolyDP(contours[i], conPoly[i], 0.02 * peri,true);
 			//绘制所有的，符号为-1,颜色为紫色，厚度为2
-			drawContours(img, conPoly, i, Scalar(255, 0, 255), 2);
+			drawContours(*img, conPoly, i, Scalar(255, 0, 255), 2);
 			//打印出每个轮廓的角点数
 			cout << conPoly[i].size() << endl; 
 			//绘制矩形边界框，将含纳每一个独立的形状
 			boundRect[i] = boundingRect(conPoly[i]);
 			//将边界框打印在原图上
-			rectangle(img, boundRect[i].tl(), boundRect[i].br(), Scalar(0, 255, 0), 5);
+			rectangle(*img, boundRect[i].tl(), boundRect[i].br(), Scalar(0, 255, 0), 5);
 			//定义每个轮廓的角点数
 			int objCor = (int)conPoly[i].size();
 			//三角形判断
@@ -322,7 +355,7 @@ void getContours(Mat imgDil,Mat img)
 				objectType = "Circle";
 			}
 			//在形状上方写出对应的名称
-			putText(img, objectType, { boundRect[i].x,boundRect[i].y - 5 }, FONT_HERSHEY_DUPLEX, 0.75, Scalar(0, 69, 255), 2);
+			putText(*img, objectType, { boundRect[i].x,boundRect[i].y - 5 }, FONT_HERSHEY_DUPLEX, 0.75, Scalar(0, 69, 255), 2);
 		}
 	}
 }
