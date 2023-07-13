@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <pthread.h>
 #include <time.h>
 #include "opencv2/core.hpp"
@@ -11,10 +12,11 @@ using namespace cv;
 
 void getContours(Mat imgDil, Mat img);
 Point get_center_position(Mat* img_origin, Rect roi);
-vector<Point> get_map_pos(Mat* img, vector<Rect> rois);
+vector<Point> get_map_pos(Mat* img);
 
 Mat frame;
-Mat gray, hsv_frame, orange_thres, black_thres, RGB_mask;
+Mat gray, hsv_frame, orange_thres, green_thres, RGB_mask;
+Mat img_warp_hsv,img_wrap_BGR;
 vector<Mat> hsvSplit;
 
 vector<Rect> location_rois = {{277,5,60,60},
@@ -23,7 +25,17 @@ vector<Rect> location_rois = {{277,5,60,60},
 							  {0,0,60,60}};
 
 int fd;
-int main_status;  // modified in uart.cpp --> void* receive_thread(void* ptr)
+int main_status = 10;  // modified in uart.cpp --> void* receive_thread(void* ptr)
+vector<Point2f> dst_points = {Point2f(0.0, 0.0),
+							  Point2f(0.0, 500.0),
+				              Point2f(400.0, 0.0),
+				              Point2f(400.0, 500.0)};
+vector<Point2f> map_pos_2f;
+
+// [247, 92;
+//  508, 84;
+//  258, 415;
+//  517, 409]
 
 int main()
 {
@@ -40,8 +52,8 @@ int main()
     capture.set(CAP_PROP_FRAME_HEIGHT,480);
     capture.set(CAP_PROP_FPS,60);
     capture.set(CAP_PROP_BUFFERSIZE, 1);
-    capture.set(CAP_PROP_AUTO_WB, 0);
-    capture.set(CAP_PROP_WB_TEMPERATURE, 4000);
+    capture.set(CAP_PROP_AUTO_WB, 1);
+    // capture.set(CAP_PROP_WB_TEMPERATURE, 4000);
     cout << "CAP_PROP_FPS" << capture.get(CAP_PROP_FPS) << endl;
     cout << "CAP_PROP_BUFFERSIZE=" << capture.get(CAP_PROP_BUFFERSIZE) << endl;
     cout << "CAP_PROP_AUTO_WB=" << capture.get(CAP_PROP_AUTO_WB) << endl;
@@ -56,24 +68,61 @@ int main()
     clock_t start, end;
     while(1)
     {   
+		cout << "### item sorting system  ###" << endl;
         start = clock();
         capture >> frame;
-        cvtColor(frame, gray, COLOR_BGR2GRAY);
         cvtColor(frame, hsv_frame, COLOR_BGR2HSV); 
-
-        ////颜色识别
-        split(hsv_frame, hsvSplit);	
+		split(hsv_frame, hsvSplit);	
         equalizeHist(hsvSplit[2], hsvSplit[2]); 
         merge(hsvSplit, hsv_frame);	
-        inRange(hsv_frame, Scalar(11, 43, 46), Scalar(140, 255, 255), orange_thres); //黄色
-        inRange(hsv_frame, Scalar(35, 43, 36), Scalar(77, 255, 255), black_thres); //黑色
-        // inRange(frame, Scalar(0, 0, 0), Scalar(100, 100, 100), RGB_mask); //黑色
-        inRange(frame, Scalar(0, 150, 90), Scalar(20, 255, 180), RGB_mask); //绿色
-        // Mat element = getStructuringElement(MORPH_RECT, Size(5, 5));
-		// morphologyEx(orange_thres, orange_thres, MORPH_OPEN, element);  //开操作
-		// morphologyEx(orange_thres, orange_thres, MORPH_CLOSE, element);  //闭操作
 
-        ////形状识别
+		cout << main_status << endl;
+
+        ////颜色识别
+        if (main_status == 10)
+		{
+			inRange(hsv_frame, Scalar(35, 43, 36), Scalar(77, 255, 255), green_thres); //绿色
+			Mat element = getStructuringElement(MORPH_RECT, Size(5, 5));
+			morphologyEx(green_thres, green_thres, MORPH_OPEN, element);  //开操作
+			morphologyEx(green_thres, green_thres, MORPH_CLOSE, element);  //闭操作
+			vector<Point> map_pos = get_map_pos(&green_thres);
+			if (map_pos.size() == 4 && main_status == 10)
+			{
+				map_pos_2f.clear();
+				for (int i=0; i<map_pos.size(); i++)
+				{
+					map_pos_2f.push_back(Point2f(map_pos[i].x, map_pos[i].y));
+				}
+				cout << map_pos << endl;
+			}
+			if (map_pos_2f.size() == 4)
+			{
+				Mat rotation,img_warp;
+				rotation=getPerspectiveTransform(map_pos_2f,dst_points);
+				warpPerspective(frame, img_warp, rotation, Size(400, 500));
+				imshow("imgwrap", img_warp);
+			}
+			imshow("green", green_thres);
+		}
+		else if (main_status == 20)
+		{
+			if (map_pos_2f.size() == 4)
+			{
+				Mat rotation;
+				rotation=getPerspectiveTransform(map_pos_2f,dst_points);
+				warpPerspective(hsv_frame, img_warp_hsv, rotation, Size(400, 500));
+				warpPerspective(frame, img_wrap_BGR, rotation, Size(400, 500));
+				imshow("imgwraphsv", img_warp_hsv);
+				imshow("imgwrapBGR", img_wrap_BGR);
+			}
+
+			inRange(img_warp_hsv, Scalar(11, 43, 46), Scalar(140, 255, 255), orange_thres); //黄色
+			inRange(img_warp_hsv, Scalar(0, 0, 0), Scalar(200, 200, 30), RGB_mask); //黑色
+			// inRange(frame, Scalar(90, 150, 0), Scalar(180, 255, 20), RGB_mask); //绿色
+			imshow("orange", orange_thres);
+			imshow("RGB_mask", RGB_mask);
+		}
+        // //形状识别
         // Mat imgBlur;
         // GaussianBlur(gray, imgBlur, Size(3,3), 3, 0);
         // Mat img_threshold;
@@ -87,13 +136,15 @@ int main()
 
         end = clock();
         imshow("frame", frame);
-        imshow("orange", orange_thres);
-        imshow("black", black_thres);
-        imshow("RGB_mask", RGB_mask);
-        // cout << "fps=" << 1/(double(end-start)/CLOCKS_PER_SEC) << endl;
+        
+        cout << "fps=" << 1/(double(end-start)/CLOCKS_PER_SEC) << endl;
         int key = waitKey(1);
         if (key == 27)
         {
+			fstream f;
+			f.open("../map_pos.txt", ios::out);
+			f << map_pos_2f << endl;
+			f.close();
             break;
         }
     }
@@ -101,15 +152,72 @@ int main()
     return 0;
 }
 
-vector<Point> get_map_pos(Mat* img, vector<Rect> rois)
+vector<Point> get_map_pos(Mat* img)
 {
+	vector<Point> rec_pos_sort;
 	vector<Point> rec_pos;
-	for (int i=0; i<rois.size(); i++)
+	vector<vector<Point>> contours;
+	vector<Vec4i> hierarchy;
+	findContours(green_thres, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+	for (int i = 0; i < contours.size(); i++)
 	{
-		Point pos = get_center_position(img, rois[i]);
-		rec_pos.push_back(pos);
+		Rect bound = boundingRect(contours[i]);
+		Point center = {0,0};
+		int count = 0;
+		for (int j=0; j<bound.width; j++)
+		{
+			for (int k=0; k< bound.height; k++)
+			{
+				if (green_thres.at<uchar>(bound.y+k, bound.x+j) == 255)
+				{
+					center += {bound.x+j, bound.y+k};
+					count++;
+				}
+			}
+		}
+		center.x /= count;
+		center.y /= count;
+		rec_pos.push_back(center);
+		circle(frame, center, 3, Scalar(0, 255, 120), -1);
+		// cout << "center=" << center << endl;
+		// int area = contourArea(contours[i]);
 	}
-	return rec_pos;
+	if (rec_pos.size() == 4)
+	{
+		vector<int> temp;
+		for (int i=0; i<rec_pos.size(); i++)
+		{
+			int xandy = rec_pos[i].x + rec_pos[i].y;
+			temp.push_back(xandy);
+		}
+		int max_index = max_element(temp.begin(), temp.end()) - temp.begin();
+		int min_index = min_element(temp.begin(), temp.end()) - temp.begin();
+		rec_pos_sort.push_back(rec_pos[min_index]);
+		rec_pos_sort.push_back(rec_pos[max_index]);
+		int r1=-1, r2=-1;
+		for (int i=0; i<4; i++)
+		{
+			if (i != min_index && i != max_index)
+			{
+				if (r1==-1)  r1 = i;
+				else  r2 = i;
+			}
+		}
+		if (rec_pos[r1].y < rec_pos[r2].y)
+		{
+			rec_pos_sort.push_back(rec_pos[r1]);
+			rec_pos_sort.push_back(rec_pos[r2]);
+		}
+		else
+		{
+			rec_pos_sort.push_back(rec_pos[r2]);
+			rec_pos_sort.push_back(rec_pos[r1]);
+		}
+		Point tempPoint = rec_pos_sort[1];
+		rec_pos_sort[1] = rec_pos_sort[3];
+		rec_pos_sort[3] = tempPoint;
+	}
+	return rec_pos_sort;
 }
 
 Point get_center_position(Mat* img_origin, Rect roi)
@@ -153,6 +261,7 @@ void getContours(Mat imgDil,Mat img)
 	//绘制所有的，符号为-1,颜色为紫色，厚度为2
 	//drawContours(img, contours, -1,Scalar(255, 0, 255),10);
     //过滤噪声点
+	cout << "find:" << contours.size() << endl;
 	for (int i = 0; i < contours.size(); i++)
 	{
 		//先找到每个轮廓的面积

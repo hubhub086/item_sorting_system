@@ -12,7 +12,7 @@ image = cv2.imread('../test.jpg') # 根据路径读取一张图片
 cv2.imshow("BGR", image) # 显示图片
 
 hsv_low = np.array([0, 0, 0])
-hsv_high = np.array([0, 0, 0])
+hsv_high = np.array([160, 160, 28])
 
 # 下面几个函数，写得有点冗余
 

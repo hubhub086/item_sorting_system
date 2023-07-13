@@ -73,29 +73,29 @@ CMakeFiles/item_sorting_system.dir/main.cpp.o: CMakeFiles/item_sorting_system.di
 CMakeFiles/item_sorting_system.dir/main.cpp.o: ../main.cpp
 CMakeFiles/item_sorting_system.dir/main.cpp.o: CMakeFiles/item_sorting_system.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/k06/Desktop/item_sorting_system/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/item_sorting_system.dir/main.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/item_sorting_system.dir/main.cpp.o -MF CMakeFiles/item_sorting_system.dir/main.cpp.o.d -o CMakeFiles/item_sorting_system.dir/main.cpp.o -c /home/k06/Desktop/item_sorting_system/main.cpp
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/item_sorting_system.dir/main.cpp.o -MF CMakeFiles/item_sorting_system.dir/main.cpp.o.d -o CMakeFiles/item_sorting_system.dir/main.cpp.o -c /home/k06/Desktop/item_sorting_system/main.cpp
 
 CMakeFiles/item_sorting_system.dir/main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/item_sorting_system.dir/main.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/k06/Desktop/item_sorting_system/main.cpp > CMakeFiles/item_sorting_system.dir/main.cpp.i
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/k06/Desktop/item_sorting_system/main.cpp > CMakeFiles/item_sorting_system.dir/main.cpp.i
 
 CMakeFiles/item_sorting_system.dir/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/item_sorting_system.dir/main.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/k06/Desktop/item_sorting_system/main.cpp -o CMakeFiles/item_sorting_system.dir/main.cpp.s
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/k06/Desktop/item_sorting_system/main.cpp -o CMakeFiles/item_sorting_system.dir/main.cpp.s
 
 CMakeFiles/item_sorting_system.dir/uart.cpp.o: CMakeFiles/item_sorting_system.dir/flags.make
 CMakeFiles/item_sorting_system.dir/uart.cpp.o: ../uart.cpp
 CMakeFiles/item_sorting_system.dir/uart.cpp.o: CMakeFiles/item_sorting_system.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/k06/Desktop/item_sorting_system/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/item_sorting_system.dir/uart.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/item_sorting_system.dir/uart.cpp.o -MF CMakeFiles/item_sorting_system.dir/uart.cpp.o.d -o CMakeFiles/item_sorting_system.dir/uart.cpp.o -c /home/k06/Desktop/item_sorting_system/uart.cpp
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/item_sorting_system.dir/uart.cpp.o -MF CMakeFiles/item_sorting_system.dir/uart.cpp.o.d -o CMakeFiles/item_sorting_system.dir/uart.cpp.o -c /home/k06/Desktop/item_sorting_system/uart.cpp
 
 CMakeFiles/item_sorting_system.dir/uart.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/item_sorting_system.dir/uart.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/k06/Desktop/item_sorting_system/uart.cpp > CMakeFiles/item_sorting_system.dir/uart.cpp.i
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/k06/Desktop/item_sorting_system/uart.cpp > CMakeFiles/item_sorting_system.dir/uart.cpp.i
 
 CMakeFiles/item_sorting_system.dir/uart.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/item_sorting_system.dir/uart.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/k06/Desktop/item_sorting_system/uart.cpp -o CMakeFiles/item_sorting_system.dir/uart.cpp.s
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/k06/Desktop/item_sorting_system/uart.cpp -o CMakeFiles/item_sorting_system.dir/uart.cpp.s
 
 # Object files for target item_sorting_system
 item_sorting_system_OBJECTS = \
